@@ -171,7 +171,7 @@ def main():
         print("    (The UnRegisterClass method will execute your shellcode)")
     else:
         print(f"\n[*] To compile manually:")
-        csc = find_csc() or "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+        csc = find_csc() or "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
         print(f"    {csc} /target:library /platform:anycpu /optimize+ /out:{args.output_dll} {args.output_source}")
 
 if __name__ == "__main__":
